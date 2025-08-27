@@ -1,69 +1,30 @@
-# Streamlit CRM — Clients & Action Points Dashboard
+# Intertek Geronimo — Marketing Dashboard (Sales Rep Edition)
 
-A modern Streamlit app for managing **clients** and **action points** with analytics and exports.
-Designed to run locally or on **Streamlit Community Cloud**.
+This is a self-contained Streamlit CRM & Marketing Dashboard tailored for a Sales Representative operating in Ghana (scalable to West Africa).
+It includes: clients, contacts, interactions, campaigns & leads, meetings & opportunities, tasks & reminders, targets, reporting, user management, and export/import utilities.
 
-## Quick Start (Local)
+## What's included
+- `app.py` — The full Streamlit application (drop-in, run with `streamlit run app.py`).
+- `crm.db` — Pre-seeded SQLite database with sample sectors, companies, contacts, and seeded interactions/campaigns/tasks.
+- `requirements.txt` — Python dependencies.
+- `README.md` — This file.
 
-```bash
-cd streamlit_crm_dashboard
-pip install -r requirements.txt
-streamlit run app.py
-```
+## Quick start
+1. Create a virtualenv and install requirements:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+   pip install -r requirements.txt
+   ```
+2. Run the app:
+   ```bash
+   streamlit run app.py
+   ```
+3. Default login credentials (seeded):
+   - username: `admin`
+   - password: `password123`
 
-The app will create (or use) a local `crm.db` SQLite database. You can load sample data via the sidebar button.
-
-## Deploy to Streamlit Community Cloud
-
-1. Push this folder to a GitHub repo (e.g., `streamlit-crm-dashboard`).
-2. On https://share.streamlit.io, create a new app:
-   - **Repository**: your GitHub repo
-   - **Branch**: main
-   - **Main file path**: `app.py`
-3. Add environment variable (optional):
-   - `CRM_DB_PATH` (default is `crm.db` in the app root).
-4. Click **Deploy**.
-
-### Note on PyInstaller
-
-Streamlit apps are typically **not** packaged with PyInstaller for the cloud.
-Instead, deploy directly as a Streamlit project (this repo) with `requirements.txt`.
-
-If you still need a one-file desktop binary for local distribution, you can try:
-```bash
-pyinstaller --noconfirm --onefile --console   --add-data "crm.db;."   --hidden-import=streamlit   --collect-all streamlit   app.py
-```
-But this is separate from Streamlit Cloud hosting.
-
-## Features
-
-- CRUD for **Clients** and **Action Points**
-- Sidebar **Filters** (status, priority, assignee, client, dates)
-- **KPI** cards
-- **Waterfall** ("stair-like") chart for statuses
-- **Pareto** chart for action points by client
-- **Timeline** (Gantt-style) of created→due
-- **Grouped bar** analytics by priority per client
-- **Excel export** of filtered action points
-
-## Project Structure
-
-```
-.
-├── app.py
-├── crm.db
-├── requirements.txt
-├── README.md
-├── .streamlit/
-│   └── config.toml
-└── assets/
-    └── logo.png
-```
-
-## Theming
-
-You can adjust UI colors in `.streamlit/config.toml`.
-
----
-
-© 2025 Streamlit CRM Demo
+## Notes
+- The app stores its SQLite DB in the same folder (`crm.db`). You can copy it and keep backups.
+- Use the "Reset & Reseed Demo Data" option in Settings to restore seeded demo content.
+- Designed for weekly presentations (Monday & Thursday) — use the date filters and the Export tools to prepare slides quickly.
