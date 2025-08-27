@@ -826,11 +826,12 @@ def page_action_points():
                 st.success("Action point updated.")
                 clear_cache_and_refresh()
 
-        if st.button("Delete this action point"):
-            if st.checkbox("Confirm delete action (permanent)"):
-                run_sql("DELETE FROM action_points WHERE id=?", (aid,), commit=True)
-                st.success("Action point deleted.")
-                clear_cache_and_refresh()
+        confirm_delete = st.checkbox("Confirm delete action (permanent)")
+        if st.button("Delete this action point", type="primary", disabled=not confirm_delete):
+            run_sql("DELETE FROM action_points WHERE id=?", (aid,), commit=True)
+            st.success(f"Action point {aid} deleted.")
+            st.experimental_rerun()
+
 
 def page_reports_and_export():
     st.markdown("# 📤 Reports & Export")
