@@ -767,70 +767,158 @@ def page_action_points():
     st.markdown("# ✅ Action Points — Create & Manage Tasks")
     st.caption("Create action points, update status and track progression.")
 
-    # Create
+    # ---------------- CREATE ----------------
     st.subheader("Create new action point")
     with st.form("create_action", clear_on_submit=True):
-        client_sel = st.selectbox("Client", options=["— Select client —"] + [f"{r['company_name']} (id:{int(r['id'])})" for _, r in clients.iterrows()])
-        client_id = int(client_sel.split("id:")[-1].strip().strip(')')) if (client_sel and client_sel != "— Select client —") else None
+        client_sel = st.selectbox(
+            "Client",
+            options=["— Select client —"] + [
+                f"{r['company_name']} (id:{int(r['id'])})" for _, r in clients.iterrows()
+            ],
+        )
+        client_id = (
+            int(client_sel.split("id:")[-1].strip().strip(")"))
+            if (client_sel and client_sel != "— Select client —")
+            else None
+        )
         title = st.text_input("Title *")
         description = st.text_area("Description")
         due_date = st.date_input("Due date", value=date.today() + timedelta(days=7))
         priority = st.selectbox("Priority", options=PRIORITIES, index=1)
         status = st.selectbox("Status", options=STATUSES, index=0)
         tags = st.text_input("Tags (comma separated)")
+
         if st.form_submit_button("Create action point"):
             if not title.strip():
                 st.error("Title required.")
             else:
-                run_sql("""INSERT INTO action_points (client_id, title, description, status, priority, due_date, tags)
-                           VALUES (?,?,?,?,?,?,?)""",
-                        (client_id, title.strip(), description.strip() or None, status, priority,
-                         due_date.isoformat() if due_date else None, tags.strip() or None), commit=True)
-                st.success("Action point created.")
-                clear_cache_and_refresh()
+                run_sql(
+                    """
+                    INSERT INTO action_points (client_id, title, description, status, priority, due_date, tags)
+                    VALUES (?,?,?,?,?,?,?)
+                    """,
+                    (
+                        client_id,
+                        title.strip(),
+                        description.strip() or None,
+                        status,
+                        priority,
+                        due_date.isoformat() if due_date else None,
+                        tags.strip() or None,
+                    ),
+                    commit=True,
+                )
+                st.success("✅ Action point created.")
+                st.rerun()
 
+    # ---------------- EDIT / DELETE ----------------
     st.markdown("---")
-    st.subheader("Edit / Update action point")
+    st.subheader("Edit or Delete action point")
+
     actions_df = get_action_points_df()
     if actions_df.empty:
         st.info("No action points available.")
         return
 
-    sel_opts = [f"{r['id']}: {r['title']} — {r['company_name'] if not pd.isna(r['company_name']) else '—'}" for _, r in actions_df.iterrows()]
-    sel_action = st.selectbox("Select action to edit", options=["— Select —"] + sel_opts)
+    sel_opts = [
+        f"{r['id']}: {r['title']} — {r['company_name'] if not pd.isna(r['company_name']) else '—'}"
+        for _, r in actions_df.iterrows()
+    ]
+    sel_action = st.selectbox("Select action", options=["— Select —"] + sel_opts)
+
     if sel_action and sel_action != "— Select —":
         aid = int(sel_action.split(":")[0])
-        row = actions_df[actions_df['id']==aid].iloc[0]
+        row = actions_df[actions_df["id"] == aid].iloc[0]
+
+        st.write(f"### ✏️ Editing Action Point #{aid}")
 
         with st.form("edit_action", clear_on_submit=False):
-            st.write(f"**ID:** {aid}")
-            title_e = st.text_input("Title", value=row['title'])
-            desc_e = st.text_area("Description", value=row['description'] if not pd.isna(row['description']) else '')
-            due_e = st.date_input("Due date", value=row['due_date'].date() if not pd.isna(row['due_date']) else date.today())
-            priority_e = st.selectbox("Priority", options=PRIORITIES, index=(PRIORITIES.index(row['priority']) if (not pd.isna(row['priority']) and row['priority'] in PRIORITIES) else 1))
-            status_e = st.selectbox("Status", options=STATUSES, index=(STATUSES.index(row['status']) if (not pd.isna(row['status']) and row['status'] in STATUSES) else 0))
-            tags_e = st.text_input("Tags (comma separated)", value=row['tags'] if not pd.isna(row['tags']) else '')
+            title_e = st.text_input("Title", value=row["title"])
+            desc_e = st.text_area(
+                "Description",
+                value=row["description"] if not pd.isna(row["description"]) else "",
+            )
+            due_e = st.date_input(
+                "Due date",
+                value=row["due_date"].date()
+                if not pd.isna(row["due_date"])
+                else date.today(),
+            )
+            priority_e = st.selectbox(
+                "Priority",
+                options=PRIORITIES,
+                index=PRIORITIES.index(row["priority"])
+                if (not pd.isna(row["priority"]) and row["priority"] in PRIORITIES)
+                else 1,
+            )
+            status_e = st.selectbox(
+                "Status",
+                options=STATUSES,
+                index=STATUSES.index(row["status"])
+                if (not pd.isna(row["status"]) and row["status"] in STATUSES)
+                else 0,
+            )
+            tags_e = st.text_input(
+                "Tags (comma separated)",
+                value=row["tags"] if not pd.isna(row["tags"]) else "",
+            )
             note_change = st.text_area("Change note (optional)")
-            if st.form_submit_button("Save changes"):
-                prev_status = row['status']
-                completed_at_val = row['completed_at']
-                if status_e == 'Done' and (pd.isna(row['completed_at']) or str(row['completed_at']).strip()=='' ):
-                    completed_at_val = date.today().isoformat()
-                elif status_e != 'Done':
-                    completed_at_val = None
-                run_sql("""UPDATE action_points SET title=?, description=?, due_date=?, priority=?, status=?, completed_at=?, tags=? WHERE id=?""",
-                        (title_e.strip(), desc_e.strip() or None, due_e.isoformat() if due_e else None, priority_e, status_e, completed_at_val, tags_e.strip() or None, aid), commit=True)
-                if prev_status != status_e or (note_change and note_change.strip()):
-                    run_sql("INSERT INTO activity_logs (action_point_id, prev_status, new_status, note) VALUES (?,?,?,?)",
-                            (aid, prev_status, status_e, note_change.strip() or None), commit=True)
-                st.success("Action point updated.")
-                clear_cache_and_refresh()
 
-        confirm_delete = st.checkbox("Confirm delete action (permanent)")
-        if st.button("Delete this action point", type="primary", disabled=not confirm_delete):
+            save_changes = st.form_submit_button("💾 Save changes")
+            if save_changes:
+                prev_status = row["status"]
+                completed_at_val = row["completed_at"]
+
+                # handle completed_at
+                if status_e == "Done" and (
+                    pd.isna(row["completed_at"])
+                    or str(row["completed_at"]).strip() == ""
+                ):
+                    completed_at_val = date.today().isoformat()
+                elif status_e != "Done":
+                    completed_at_val = None
+
+                run_sql(
+                    """
+                    UPDATE action_points 
+                    SET title=?, description=?, due_date=?, priority=?, status=?, completed_at=?, tags=?
+                    WHERE id=?
+                    """,
+                    (
+                        title_e.strip(),
+                        desc_e.strip() or None,
+                        due_e.isoformat() if due_e else None,
+                        priority_e,
+                        status_e,
+                        completed_at_val,
+                        tags_e.strip() or None,
+                        aid,
+                    ),
+                    commit=True,
+                )
+
+                # log status change
+                if prev_status != status_e or (note_change and note_change.strip()):
+                    run_sql(
+                        """
+                        INSERT INTO activity_logs (action_point_id, prev_status, new_status, note)
+                        VALUES (?,?,?,?)
+                        """,
+                        (aid, prev_status, status_e, note_change.strip() or None),
+                        commit=True,
+                    )
+
+                st.success("✅ Action point updated.")
+                st.rerun()
+
+        # DELETE SECTION
+        st.error("⚠️ Danger zone — Delete this action point permanently")
+        confirm_delete = st.checkbox("Yes, I want to delete this action point")
+        if st.button("🗑️ Delete action point", disabled=not confirm_delete):
             run_sql("DELETE FROM action_points WHERE id=?", (aid,), commit=True)
-            st.success(f"Action point {aid} deleted.")
+            st.success(f"🗑️ Action point #{aid} deleted.")
             st.rerun()
+
 
 
 def page_reports_and_export():
