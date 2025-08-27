@@ -830,7 +830,7 @@ def page_action_points():
         if st.button("Delete this action point", type="primary", disabled=not confirm_delete):
             run_sql("DELETE FROM action_points WHERE id=?", (aid,), commit=True)
             st.success(f"Action point {aid} deleted.")
-            st.experimental_rerun()
+            st.rerun()
 
 
 def page_reports_and_export():
